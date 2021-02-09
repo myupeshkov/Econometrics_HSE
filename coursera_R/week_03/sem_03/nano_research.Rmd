@@ -1,0 +1,52 @@
+---
+title: "Нано исследование"
+output:
+  pdf_document: default
+  word_document: default
+lang: ru-RU
+editor_options:
+  chunk_output_type: console
+---
+
+
+В этом исследовании мы рассмотрим цены на квартиры в Москве.
+
+
+```{r, include=FALSE}
+library(huxtable) # перевод табличек в markdown, tex, html, word...
+library(tidyverse) # коллекция, куда входят dplyr, ggplot2, ...
+library(pander) # перевод разных объектов в маркдаун
+library(knitr) # настройки обработки кусков кода
+f <- read.csv("flats_moscow.txt", sep = "\t",
+  header = TRUE, dec = ".")
+opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+В нашем наборе данных `r nrow(f)` наблюдений. Средняя цена квартиры равна `r round(mean(f$price), 0)` тысяч у.е.
+
+Распределение цен квартир в кирпичных и некирпичных домах:
+
+```{r}
+# синтаксис mutate_each из видео устарел :)
+# у mutate_at аргументы: табличка, названия переменных, функция
+f <- mutate_at(f, c("walk", "brick", "floor", "code"), factor)
+ggplot(data = f, aes(log(price), fill = brick)) +
+  geom_histogram(position = "dodge")
+```
+
+\newpage
+
+Оценим и сравним три модели:
+
+```{r, results='asis', warning=FALSE}
+model_0 <- lm(data = f, log(price) ~ log(totsp))
+model_1 <- lm(data = f, log(price) ~ log(totsp) + brick)
+model_2 <- lm(data = f, log(price) ~ log(totsp) + brick + brick:log(totsp))
+
+reg_table <- huxreg(model_0, model_1, model_2)
+print_md(reg_table)
+```
+
+У нас лучше оказалась модель 2.
+
+
